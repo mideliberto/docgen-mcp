@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "docgen": {
+      "command": "node",
+      "args": ["/path/to/docgen-mcp/dist/index.js"]
+    }
+  }
+}

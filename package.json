@@ -1,0 +1,29 @@
+{
+  "name": "docgen-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for generating TMA/PWP Word documents",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "docgen-mcp": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "docx": "^8.0.0",
+    "jszip": "^3.10.0",
+    "yaml": "^2.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mideliberto/docgen-mcp.git"
+  }
+}

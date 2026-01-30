@@ -1,0 +1,18 @@
+organization:
+  name: "True Meridian Advisory"
+  abbreviation: "TMA"
+  tagline: "Strategic IT Advisory"
+
+identity:
+  author: "Mike Deliberto"
+  title: "Principal Consultant"
+  email: "mike@truemeridianadvisory.com"
+
+paths:
+  templates: "./templates/tma"
+  shared: "./templates/shared"
+  output: "./output"
+
+metadata:
+  company: "True Meridian Advisory LLC"
+  confidentiality: "Confidential"

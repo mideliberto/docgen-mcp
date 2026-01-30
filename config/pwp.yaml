@@ -1,0 +1,18 @@
+organization:
+  name: "PWP Health"
+  abbreviation: "PWP"
+  tagline: ""
+
+identity:
+  author: "Mike Deliberto"
+  title: "IT Director"
+  email: "mdeliberto@pwphealth.com"
+
+paths:
+  templates: "./templates/pwp"
+  shared: "./templates/shared"
+  output: "./output"
+
+metadata:
+  company: "PWP Health"
+  confidentiality: "Internal Use Only"
