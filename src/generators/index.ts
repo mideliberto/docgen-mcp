@@ -6,3 +6,6 @@ export { generateProjectSummary, type ProjectSummaryContent } from './project-su
 export { generateAssessment, type AssessmentContent } from './assessment.js';
 export { generateRiskRegister, type RiskRegisterContent } from './risk-register.js';
 export { generateRunbook, type RunbookContent } from './runbook.js';
+
+// Google Docs generators
+export { generateBriefGDocs } from './brief-gdocs.js';
