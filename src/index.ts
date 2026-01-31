@@ -22,6 +22,10 @@ import {
   generateRiskRegister,
   generateRunbook,
 } from './generators/index.js';
+import { GDocsBuilder } from './utils/gdocs-builder.js';
+import { buildFromSections } from './utils/section-builder.js';
+import { getDocsService, getDriveService, hasStoredCredentials } from './auth/google-auth.js';
+import { Section } from './types/sections.js';
 
 const server = new Server(
   {
@@ -304,6 +308,63 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         required: ['doc_type'],
       },
     },
+    {
+      name: 'create_google_doc',
+      description: 'Create a Google Doc from structured sections. NO MARKDOWN - use explicit formatting in section data.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', description: 'Document title' },
+          sections: {
+            type: 'array',
+            description: 'Array of structured sections (heading, paragraph, bullet_list, numbered_list, table, callout, code_block, horizontal_rule, page_break, image)',
+            items: {
+              type: 'object',
+              properties: {
+                type: {
+                  type: 'string',
+                  enum: ['heading', 'paragraph', 'bullet_list', 'numbered_list', 'table', 'callout', 'code_block', 'horizontal_rule', 'page_break', 'image'],
+                },
+              },
+              required: ['type'],
+            },
+          },
+          config: {
+            type: 'string',
+            enum: ['tma', 'pwp'],
+            description: 'Organization context (TMA consulting or PWP internal)',
+          },
+          folder_id: {
+            type: 'string',
+            description: 'Google Drive folder ID to create the doc in (optional)',
+          },
+          header: {
+            type: 'object',
+            description: 'Document header configuration',
+            properties: {
+              text: { type: 'string', description: 'Header text' },
+              includePageNumber: { type: 'boolean', description: 'Include page number' },
+              alignment: { type: 'string', enum: ['left', 'center', 'right'] },
+            },
+          },
+          footer: {
+            type: 'object',
+            description: 'Document footer configuration',
+            properties: {
+              text: { type: 'string', description: 'Footer text' },
+              includePageNumber: { type: 'boolean', description: 'Include page number' },
+              alignment: { type: 'string', enum: ['left', 'center', 'right'] },
+            },
+          },
+        },
+        required: ['title', 'sections', 'config'],
+      },
+    },
+    {
+      name: 'get_section_schema',
+      description: 'Get the schema for structured document sections (for create_google_doc)',
+      inputSchema: { type: 'object', properties: {} },
+    },
   ],
 }));
 
@@ -330,6 +391,285 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return { content: [{ type: 'text', text: `Unknown doc_type: ${docType}` }], isError: true };
     }
     return { content: [{ type: 'text', text: JSON.stringify(DOC_SCHEMAS[docType], null, 2) }] };
+  }
+
+  if (name === 'get_section_schema') {
+    const schema = {
+      section_types: {
+        heading: {
+          type: 'heading',
+          level: '1-6',
+          text: 'string',
+        },
+        paragraph: {
+          type: 'paragraph',
+          content: 'string OR array of TextRun',
+        },
+        bullet_list: {
+          type: 'bullet_list',
+          items: 'array of string OR ListItem { content, level? }',
+        },
+        numbered_list: {
+          type: 'numbered_list',
+          items: 'array of string OR ListItem { content, level? }',
+        },
+        table: {
+          type: 'table',
+          headers: 'string[]',
+          rows: 'string[][] OR TableCell[][]',
+        },
+        callout: {
+          type: 'callout',
+          style: 'info | warning | critical | success',
+          content: 'string OR TextRun[]',
+        },
+        code_block: {
+          type: 'code_block',
+          content: 'string',
+        },
+        horizontal_rule: { type: 'horizontal_rule' },
+        page_break: { type: 'page_break' },
+      },
+      text_run: {
+        text: 'string (required)',
+        bold: 'boolean',
+        italic: 'boolean',
+        underline: 'boolean',
+        strikethrough: 'boolean',
+        code: 'boolean (monospace)',
+        link: 'string (URL)',
+        color: 'string (hex without #)',
+        fontSize: 'number (points)',
+      },
+      example: {
+        title: 'My Document',
+        sections: [
+          { type: 'heading', level: 2, text: 'Introduction' },
+          {
+            type: 'paragraph',
+            content: [
+              { text: 'This is ' },
+              { text: 'bold', bold: true },
+              { text: ' and ' },
+              { text: 'italic', italic: true },
+              { text: ' text.' },
+            ],
+          },
+          { type: 'bullet_list', items: ['Item 1', 'Item 2', 'Item 3'] },
+        ],
+        config: 'pwp',
+      },
+    };
+    return { content: [{ type: 'text', text: JSON.stringify(schema, null, 2) }] };
+  }
+
+  if (name === 'create_google_doc') {
+    const { title, sections, config, folder_id, header, footer } = args as {
+      title: string;
+      sections: Section[];
+      config: 'tma' | 'pwp';
+      folder_id?: string;
+      header?: { text?: string; includePageNumber?: boolean; alignment?: 'left' | 'center' | 'right' };
+      footer?: { text?: string; includePageNumber?: boolean; alignment?: 'left' | 'center' | 'right' };
+    };
+
+    try {
+      // Check for credentials
+      if (!hasStoredCredentials()) {
+        return {
+          content: [{
+            type: 'text',
+            text: 'Not authenticated with Google. Run the MCP server interactively to complete OAuth flow.',
+          }],
+          isError: true,
+        };
+      }
+
+      // Build the document using GDocsBuilder
+      const builder = new GDocsBuilder();
+
+      // Configure header/footer if provided
+      if (header) {
+        builder.setHeader(header);
+      }
+      if (footer) {
+        builder.setFooter(footer);
+      }
+
+      await buildFromSections(builder, title, sections);
+
+      // Get phase requests for multi-phase approach
+      const phaseData = builder.getPhaseRequests();
+
+      // Create blank Google Doc
+      const driveService = await getDriveService();
+      const docsService = await getDocsService();
+
+      const fileMetadata: { name: string; mimeType: string; parents?: string[] } = {
+        name: title,
+        mimeType: 'application/vnd.google-apps.document',
+      };
+
+      if (folder_id) {
+        fileMetadata.parents = [folder_id];
+      }
+
+      const file = await driveService.files.create({
+        requestBody: fileMetadata,
+        fields: 'id, name, webViewLink',
+      });
+
+      const docId = file.data.id!;
+
+      // === PHASE 1: Create headers, footers (get IDs from response) ===
+      let phase1Response: any = null;
+      if (phaseData.phase1Requests.length > 0) {
+        phase1Response = await docsService.documents.batchUpdate({
+          documentId: docId,
+          requestBody: { requests: phaseData.phase1Requests as any },
+        });
+      }
+
+      // === MAIN PHASE: Insert all content ===
+      if (phaseData.mainRequests.length > 0) {
+        // Split requests: everything except updateTableCellStyle first
+        const structureRequests = phaseData.mainRequests.filter((r: any) => !r.updateTableCellStyle);
+        const cellStyleRequests = phaseData.mainRequests.filter((r: any) => r.updateTableCellStyle);
+
+        if (structureRequests.length > 0) {
+          await docsService.documents.batchUpdate({
+            documentId: docId,
+            requestBody: { requests: structureRequests as any },
+          });
+        }
+
+        if (cellStyleRequests.length > 0) {
+          await docsService.documents.batchUpdate({
+            documentId: docId,
+            requestBody: { requests: cellStyleRequests as any },
+          });
+        }
+      }
+
+      // === PHASE 2: Populate headers/footers using IDs from phase 1 ===
+      // NOTE: Bookmarks and page numbers (AutoText) are NOT supported by REST API
+      if (phase1Response && phase1Response.data.replies) {
+        const phase2Requests: any[] = [];
+        const replies = phase1Response.data.replies;
+
+        // Find header/footer IDs and populate them
+        let headerIdx = 0;
+        let footerIdx = phaseData.hasHeader ? 1 : 0;
+
+        if (phaseData.hasHeader && phaseData.headerConfig) {
+          const headerReply = replies[headerIdx];
+          if (headerReply?.createHeader?.headerId) {
+            const headerId = headerReply.createHeader.headerId;
+            const cfg = phaseData.headerConfig;
+
+            // Build header content
+            let headerText = cfg.text || '';
+
+            // Note: includePageNumber not supported - add placeholder text
+            if (cfg.includePageNumber) {
+              headerText += headerText ? ' [Page #]' : '[Page #]';
+              console.warn('Page numbers (AutoText) not supported by REST API - using placeholder');
+            }
+
+            if (headerText) {
+              phase2Requests.push({
+                insertText: {
+                  location: { segmentId: headerId, index: 0 },
+                  text: headerText,
+                },
+              });
+
+              // Apply alignment
+              if (cfg.alignment) {
+                const alignmentMap: Record<string, string> = {
+                  left: 'START',
+                  center: 'CENTER',
+                  right: 'END',
+                };
+                phase2Requests.push({
+                  updateParagraphStyle: {
+                    range: { segmentId: headerId, startIndex: 0, endIndex: headerText.length },
+                    paragraphStyle: { alignment: alignmentMap[cfg.alignment] },
+                    fields: 'alignment',
+                  },
+                });
+              }
+            }
+          }
+        }
+
+        if (phaseData.hasFooter && phaseData.footerConfig) {
+          const footerReply = replies[footerIdx];
+          if (footerReply?.createFooter?.footerId) {
+            const footerId = footerReply.createFooter.footerId;
+            const cfg = phaseData.footerConfig;
+
+            let footerText = cfg.text || '';
+
+            // Note: includePageNumber not supported - add placeholder text
+            if (cfg.includePageNumber) {
+              footerText += '[Page #]';
+              console.warn('Page numbers (AutoText) not supported by REST API - using placeholder');
+            }
+
+            if (footerText) {
+              phase2Requests.push({
+                insertText: {
+                  location: { segmentId: footerId, index: 0 },
+                  text: footerText,
+                },
+              });
+
+              // Apply alignment
+              if (cfg.alignment) {
+                const alignmentMap: Record<string, string> = {
+                  left: 'START',
+                  center: 'CENTER',
+                  right: 'END',
+                };
+                phase2Requests.push({
+                  updateParagraphStyle: {
+                    range: { segmentId: footerId, startIndex: 0, endIndex: footerText.length },
+                    paragraphStyle: { alignment: alignmentMap[cfg.alignment] },
+                    fields: 'alignment',
+                  },
+                });
+              }
+            }
+          }
+        }
+
+        // Execute phase 2
+        if (phase2Requests.length > 0) {
+          await docsService.documents.batchUpdate({
+            documentId: docId,
+            requestBody: { requests: phase2Requests as any },
+          });
+        }
+      }
+
+      return {
+        content: [{
+          type: 'text',
+          text: JSON.stringify({
+            id: docId,
+            name: file.data.name,
+            webViewLink: file.data.webViewLink,
+          }, null, 2),
+        }],
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return {
+        content: [{ type: 'text', text: `Error creating Google Doc: ${message}` }],
+        isError: true,
+      };
+    }
   }
 
   if (name === 'generate_document') {

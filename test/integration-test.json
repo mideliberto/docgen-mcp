@@ -1,0 +1,325 @@
+{
+  "title": "Integration Test - All Features",
+  "config": "pwp",
+  "header": {
+    "text": "Integration Test Document",
+    "alignment": "center"
+  },
+  "footer": {
+    "text": "Page ",
+    "includePageNumber": true,
+    "alignment": "right"
+  },
+  "sections": [
+    {
+      "type": "heading",
+      "level": 1,
+      "text": "Feature Test: All Section Types"
+    },
+    {
+      "type": "paragraph",
+      "content": "This document tests all supported features of the create_google_doc tool."
+    },
+
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "1. Rich Text Formatting"
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        { "text": "Normal text, " },
+        { "text": "bold", "bold": true },
+        { "text": ", " },
+        { "text": "italic", "italic": true },
+        { "text": ", " },
+        { "text": "underline", "underline": true },
+        { "text": ", " },
+        { "text": "strikethrough", "strikethrough": true },
+        { "text": ", " },
+        { "text": "code", "code": true },
+        { "text": ", " },
+        { "text": "link", "link": "https://example.com" },
+        { "text": ", " },
+        { "text": "red", "color": "FF0000" },
+        { "text": ", " },
+        { "text": "highlighted", "backgroundColor": "FFFF00" },
+        { "text": ", " },
+        { "text": "large", "fontSize": 16 },
+        { "text": "." }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        { "text": "Combined: ", "bold": true, "italic": true, "color": "1F4E79" },
+        { "text": "bold+italic+color", "bold": true, "italic": true, "color": "1F4E79" }
+      ]
+    },
+
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "2. Paragraph Options"
+    },
+    {
+      "type": "paragraph",
+      "content": "Left aligned (default).",
+      "alignment": "left"
+    },
+    {
+      "type": "paragraph",
+      "content": "Center aligned.",
+      "alignment": "center"
+    },
+    {
+      "type": "paragraph",
+      "content": "Right aligned.",
+      "alignment": "right"
+    },
+    {
+      "type": "paragraph",
+      "content": "Extra space before (24pt) and after (24pt).",
+      "spaceBefore": 24,
+      "spaceAfter": 24
+    },
+
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "3. Headings (All Levels)"
+    },
+    { "type": "heading", "level": 1, "text": "Heading 1" },
+    { "type": "heading", "level": 2, "text": "Heading 2" },
+    { "type": "heading", "level": 3, "text": "Heading 3" },
+    { "type": "heading", "level": 4, "text": "Heading 4" },
+    { "type": "heading", "level": 5, "text": "Heading 5" },
+    { "type": "heading", "level": 6, "text": "Heading 6" },
+
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "4. Bullet Lists"
+    },
+    {
+      "type": "bullet_list",
+      "items": ["Simple item 1", "Simple item 2", "Simple item 3"]
+    },
+    {
+      "type": "paragraph",
+      "content": "Nested bullet list:"
+    },
+    {
+      "type": "bullet_list",
+      "items": [
+        { "content": "Level 0", "level": 0 },
+        { "content": "Level 1", "level": 1 },
+        { "content": "Level 2", "level": 2 },
+        { "content": "Another level 1", "level": 1 },
+        { "content": "Back to level 0", "level": 0 }
+      ]
+    },
+
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "5. Numbered Lists"
+    },
+    {
+      "type": "paragraph",
+      "content": "Decimal style (default):"
+    },
+    {
+      "type": "numbered_list",
+      "items": ["First", "Second", "Third"],
+      "listStyle": "decimal"
+    },
+    {
+      "type": "paragraph",
+      "content": "Decimal nested style:"
+    },
+    {
+      "type": "numbered_list",
+      "items": [
+        { "content": "Section 1", "level": 0 },
+        { "content": "Subsection 1.1", "level": 1 },
+        { "content": "Subsection 1.2", "level": 1 },
+        { "content": "Section 2", "level": 0 }
+      ],
+      "listStyle": "decimal_nested"
+    },
+    {
+      "type": "paragraph",
+      "content": "Upper alpha style:"
+    },
+    {
+      "type": "numbered_list",
+      "items": ["Alpha A", "Alpha B", "Alpha C"],
+      "listStyle": "upper_alpha"
+    },
+
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "6. Tables"
+    },
+    {
+      "type": "paragraph",
+      "content": "Simple table:"
+    },
+    {
+      "type": "table",
+      "headers": ["Name", "Role", "Status"],
+      "rows": [
+        ["Alice", "Engineer", "Active"],
+        ["Bob", "Manager", "Active"],
+        ["Charlie", "Analyst", "On Leave"]
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": "Table with cell formatting and column widths:"
+    },
+    {
+      "type": "table",
+      "headers": ["Status", "Task", "Priority"],
+      "rows": [
+        [
+          { "text": "Complete", "backgroundColor": "C6EFCE", "bold": true },
+          "Deploy update",
+          { "text": "High", "backgroundColor": "FFC7CE" }
+        ],
+        [
+          { "text": "In Progress", "backgroundColor": "FFEB9C" },
+          "Write docs",
+          { "text": "Medium", "backgroundColor": "FFEB9C" }
+        ],
+        [
+          { "text": "Pending", "backgroundColor": "B7DEE8" },
+          "Review PR",
+          { "text": "Low", "backgroundColor": "C6EFCE" }
+        ]
+      ],
+      "columnWidths": [25, 50, 25]
+    },
+    {
+      "type": "paragraph",
+      "content": "Table with cell alignment:"
+    },
+    {
+      "type": "table",
+      "headers": ["Left", "Center", "Right"],
+      "rows": [
+        [
+          { "text": "Left aligned", "alignment": "left" },
+          { "text": "Center aligned", "alignment": "center" },
+          { "text": "Right aligned", "alignment": "right" }
+        ],
+        [
+          { "text": "123", "alignment": "left" },
+          { "text": "456", "alignment": "center" },
+          { "text": "789", "alignment": "right" }
+        ]
+      ],
+      "columnWidths": [33, 34, 33]
+    },
+
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "7. Callouts"
+    },
+    {
+      "type": "callout",
+      "style": "info",
+      "content": "This is an INFO callout - blue styling."
+    },
+    {
+      "type": "callout",
+      "style": "warning",
+      "content": "This is a WARNING callout - yellow/orange styling."
+    },
+    {
+      "type": "callout",
+      "style": "critical",
+      "content": "This is a CRITICAL callout - red styling."
+    },
+    {
+      "type": "callout",
+      "style": "success",
+      "content": "This is a SUCCESS callout - green styling."
+    },
+
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "8. Code Block"
+    },
+    {
+      "type": "code_block",
+      "content": "function greet(name) {\n  console.log(`Hello, ${name}!`);\n}\n\ngreet('World');"
+    },
+
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "9. Horizontal Rule"
+    },
+    {
+      "type": "paragraph",
+      "content": "Content before rule."
+    },
+    {
+      "type": "horizontal_rule"
+    },
+    {
+      "type": "paragraph",
+      "content": "Content after rule."
+    },
+
+    {
+      "type": "page_break"
+    },
+
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "10. Page Break (New Page)"
+    },
+    {
+      "type": "paragraph",
+      "content": "This content should appear on a new page."
+    },
+
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "11. Image (URL)"
+    },
+    {
+      "type": "image",
+      "url": "https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png",
+      "width": 200,
+      "alignment": "center"
+    },
+    {
+      "type": "paragraph",
+      "content": "Image above should show Google logo, centered, 200pt wide.",
+      "alignment": "center"
+    },
+
+    {
+      "type": "horizontal_rule"
+    },
+
+    {
+      "type": "paragraph",
+      "content": [
+        { "text": "Test complete. ", "bold": true },
+        { "text": "All features rendered above." }
+      ],
+      "alignment": "center"
+    }
+  ]
+}

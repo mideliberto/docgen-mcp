@@ -1,8 +1,26 @@
-# DocGen MCP Server
+# docgen-mcp
 
-MCP server for generating professional Word documents. Supports two contexts: TMA (consulting) and PWP (internal).
+MCP server for generating professional documents—Word (.docx) and Google Docs—with structured formatting.
 
-## Quick Start
+## Features
+
+- **Word document generation** from templates (brief, memo, proposal, etc.)
+- **Google Docs generation** via structured JSON sections
+- **Rich text formatting**: bold, italic, underline, colors, links, code
+- **Document elements**: headings, paragraphs, lists, tables, callouts, code blocks
+- **Image support**: public URLs or local file upload via Drive
+- **Headers/footers** with alignment options
+- **Nested lists** with multiple numbering styles
+- **Table cell styling**: per-cell backgrounds, bold, and alignment
+- **Two contexts**: TMA (consulting) or PWP (internal)
+
+## Prerequisites
+
+- Node.js 18+
+- For Google Docs: Google Cloud project with Docs and Drive APIs enabled
+- OAuth 2.0 credentials (shares tokens with gmail-mcp)
+
+## Installation
 
 ```bash
 git clone https://github.com/mideliberto/docgen-mcp.git
@@ -11,6 +29,19 @@ npm install
 npm run build
 ```
 
+## Configuration
+
+### Environment Variables (for Google Docs)
+
+```bash
+GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=GOCSPX-your-secret
+TOKEN_ENCRYPTION_KEY=your-32-byte-base64-key
+TOKEN_STORAGE_PATH=~/gmail_mcp_tokens/tokens.json
+```
+
+### Claude Desktop Config
+
 Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
 ```json
@@ -18,32 +49,37 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
   "mcpServers": {
     "docgen": {
       "command": "node",
-      "args": ["/path/to/docgen-mcp/dist/index.js"]
+      "args": ["/path/to/docgen-mcp/dist/index.js"],
+      "env": {
+        "GOOGLE_CLIENT_ID": "...",
+        "GOOGLE_CLIENT_SECRET": "...",
+        "TOKEN_ENCRYPTION_KEY": "...",
+        "TOKEN_STORAGE_PATH": "~/gmail_mcp_tokens/tokens.json"
+      }
     }
   }
 }
 ```
 
-Restart Claude Desktop.
+## Quick Start
 
-## Document Types
+### Google Docs (create_google_doc)
 
-| Type | Description |
-|------|-------------|
-| `brief` | Executive brief with recommendation and next steps |
-| `memo` | Internal memorandum with header fields and action items |
-| `proposal` | Project proposal with scope, timeline, investment |
-| `meeting_notes` | Meeting summary with attendees, decisions, action items |
-| `project_summary` | Status report with accomplishments, risks, milestones |
-| `assessment` | IT assessment with severity-rated findings |
-| `risk_register` | Risk tracking table with likelihood/impact matrix |
-| `runbook` | Operational procedure documentation |
+```json
+{
+  "title": "My Document",
+  "config": "pwp",
+  "sections": [
+    { "type": "heading", "level": 1, "text": "Introduction" },
+    { "type": "paragraph", "content": "Hello, world!" },
+    { "type": "bullet_list", "items": ["First item", "Second item"] }
+  ]
+}
+```
 
-## Tools
+Returns: `{ "id": "...", "webViewLink": "https://docs.google.com/..." }`
 
-### generate_document
-
-Creates a Word document and returns the temp file path.
+### Word Documents (generate_document)
 
 ```json
 {
@@ -54,203 +90,46 @@ Creates a Word document and returns the temp file path.
     "executive_summary": "Migrate to Azure over 6 months.",
     "recommendation": "Proceed with phased migration.",
     "next_steps": ["Inventory systems", "Select pilot workloads"]
-  },
-  "filename": "cloud-migration-brief"
+  }
 }
 ```
 
-**Parameters:**
-- `doc_type` (required): One of the document types above
-- `context` (required): `tma` or `pwp`
-- `title` (required): Document title
-- `content` (required): Document-specific content object
-- `filename` (optional): Output filename without extension
+Returns: Path to generated .docx file
 
-**Returns:** Path to generated .docx file (e.g., `/tmp/cloud-migration-brief.docx`)
+## Tools
 
-### list_document_types
+| Tool | Description |
+|------|-------------|
+| `create_google_doc` | Create Google Doc from structured sections |
+| `generate_document` | Create Word doc from template |
+| `get_section_schema` | Get schema for Google Docs sections |
+| `list_document_types` | List Word doc types |
+| `get_template_schema` | Get schema for Word doc type |
 
-Returns available document types with descriptions.
+## Documentation
 
-### get_template_schema
+- **[USAGE.md](./USAGE.md)** - Complete API reference for `create_google_doc`
+- **Word doc schemas** - See below for `generate_document` content schemas
 
-Returns the content schema for a specific document type.
+## Word Document Types
 
-```json
-{ "doc_type": "brief" }
-```
+| Type | Description |
+|------|-------------|
+| `brief` | Executive brief with recommendation |
+| `memo` | Internal memorandum |
+| `proposal` | Project proposal with scope/timeline |
+| `meeting_notes` | Meeting summary |
+| `project_summary` | Status report |
+| `assessment` | IT assessment with findings |
+| `risk_register` | Risk tracking table |
+| `runbook` | Operational procedures |
 
-## Content Schemas
+## Known Limitations
 
-### brief
-
-```json
-{
-  "executive_summary": "string (required)",
-  "background": "string",
-  "recommendation": "string (required)",
-  "rationale": ["string"],
-  "next_steps": ["string (required)"],
-  "timeline": "string"
-}
-```
-
-### memo
-
-```json
-{
-  "to": "string (required)",
-  "from": "string (defaults to config author)",
-  "subject": "string (required)",
-  "body": "string (required, use \\n\\n for paragraphs)",
-  "action_items": ["string"]
-}
-```
-
-### proposal
-
-```json
-{
-  "executive_summary": "string (required)",
-  "problem_statement": "string (required)",
-  "proposed_solution": "string (required)",
-  "scope": ["string (required)"],
-  "deliverables": ["string (required)"],
-  "timeline_phases": [{ "phase": "", "duration": "", "description": "" }],
-  "investment": [{ "item": "", "amount": "" }],
-  "assumptions": ["string"],
-  "next_steps": ["string (required)"]
-}
-```
-
-### meeting_notes
-
-```json
-{
-  "meeting_date": "string (required)",
-  "attendees": ["string (required)"],
-  "agenda": ["string"],
-  "discussion_points": ["string (required)"],
-  "decisions": ["string"],
-  "action_items": [{ "owner": "", "task": "", "due": "" }],
-  "next_meeting": "string"
-}
-```
-
-### project_summary
-
-```json
-{
-  "overview": "string (required)",
-  "objectives": ["string (required)"],
-  "status": "on_track | at_risk | delayed | completed (required)",
-  "status_summary": "string (required)",
-  "accomplishments": ["string (required)"],
-  "upcoming_milestones": [{ "milestone": "", "date": "" }],
-  "risks": [{ "risk": "", "mitigation": "" }],
-  "blockers": ["string"],
-  "next_steps": ["string (required)"]
-}
-```
-
-### assessment
-
-```json
-{
-  "executive_summary": "string (required)",
-  "scope": "string (required)",
-  "methodology": "string (required)",
-  "findings": [{
-    "severity": "critical | high | medium | low",
-    "title": "string",
-    "description": "string",
-    "recommendation": "string"
-  }],
-  "summary_by_severity": [{ "severity": "", "count": 0 }],
-  "recommendations": ["string (required)"],
-  "next_steps": ["string (required)"]
-}
-```
-
-### risk_register
-
-```json
-{
-  "overview": "string (required)",
-  "risks": [{
-    "id": "string",
-    "title": "string",
-    "description": "string",
-    "likelihood": "low | medium | high",
-    "impact": "low | medium | high",
-    "severity": "low | medium | high | critical",
-    "owner": "string",
-    "mitigation": "string",
-    "status": "open | mitigating | closed"
-  }]
-}
-```
-
-### runbook
-
-```json
-{
-  "purpose": "string (required)",
-  "scope": "string (required)",
-  "prerequisites": ["string"],
-  "procedures": [{
-    "title": "string",
-    "steps": ["string"]
-  }],
-  "troubleshooting": [{ "issue": "", "resolution": "" }],
-  "contacts": [{ "role": "", "name": "", "contact": "" }],
-  "revision_history": [{ "date": "", "version": "", "changes": "" }]
-}
-```
-
-## Configuration
-
-Organization configs in `config/`:
-
-```yaml
-# config/tma.yaml
-organization:
-  name: "True Meridian Advisory"
-  abbreviation: "TMA"
-
-identity:
-  author: "Mike Deliberto"
-  title: "Principal Consultant"
-  email: "mike@truemeridianadvisory.com"
-
-metadata:
-  company: "True Meridian Advisory LLC"
-  confidentiality: "Confidential"
-```
-
-## Styling
-
-Documents use consistent styling defined in `src/styles.ts`:
-
-- **Colors:** Primary blues, severity colors (critical/high/medium/low), neutral grays
-- **Fonts:** Arial, sizes from 9pt (caption) to 28pt (hero title)
-- **Tables:** Alternating row shading, header styling, consistent borders
-
-## Template Fill Mode
-
-For documents requiring existing .docx templates with placeholders:
-
-```typescript
-import { fillTemplate } from './utils/template-fill.js';
-
-const buffer = await fillTemplate('templates/tma/assessment.docx', {
-  'CLIENT_NAME': 'Acme Corp',
-  'DATE': '2024-01-15',
-  'AUTHOR': 'Mike Deliberto'
-});
-```
-
-Supports `[PLACEHOLDER]` and `{{placeholder}}` syntax.
+- **No page numbers in Google Docs**: REST API doesn't support AutoText
+- **No bookmarks**: REST API lacks `createBookmark`
+- **Local images**: Uploaded to Drive automatically, requires public sharing
+- **Token refresh**: Read-only from gmail-mcp
 
 ## Development
 
