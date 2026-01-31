@@ -75,7 +75,7 @@ export async function buildFromSections(
         break;
 
       case 'paragraph': {
-        const runs = toRuns(section.content);
+        const runs = toRuns(section.content ?? (section as any).text);
         // Map alignment to Google Docs API format
         const alignmentMap: Record<string, 'START' | 'CENTER' | 'END' | 'JUSTIFIED'> = {
           left: 'START',

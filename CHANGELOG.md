@@ -1,20 +1,21 @@
-# Changelog
+# DocGen-MCP Changelog
 
-## 1.0.0 (2024-01-30)
+## 2026-01-31
+- Token refresh persistence implemented (saves refreshed tokens back to encrypted storage)
+- Documentation standardization
 
-Initial release.
+## 2026-01-30
+- Google Docs generation fully working
+- Token sharing with gmail-mcp implemented
+- Rich text formatting, tables, callouts, code blocks
+- Image support (URL and local file upload)
+- Headers and footers
 
-### Features
-
+## 2024-01-30 (1.0.0)
+- Initial release
 - MCP server with stdio transport
-- 8 document generators: brief, memo, proposal, meeting_notes, project_summary, assessment, risk_register, runbook
+- 8 Word document generators: brief, memo, proposal, meeting_notes, project_summary, assessment, risk_register, runbook
 - Two organization contexts: TMA (consulting), PWP (internal)
 - Style constants for consistent document formatting
 - Template fill utility for placeholder replacement in .docx files
 - YAML-based organization configuration
-
-### Tools
-
-- `generate_document` - Create Word documents programmatically
-- `list_document_types` - List available document types
-- `get_template_schema` - Get content schema for a document type

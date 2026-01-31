@@ -8,7 +8,7 @@
 
 import { google } from 'googleapis';
 import { OAuth2Client, Credentials } from 'google-auth-library';
-import { readFileSync, existsSync, createReadStream } from 'fs';
+import { readFileSync, existsSync, createReadStream, writeFileSync } from 'fs';
 import { homedir } from 'os';
 import { join, dirname, basename, extname } from 'path';
 import { pbkdf2Sync } from 'crypto';
@@ -54,6 +54,65 @@ function decryptToken(encryptedToken: string, fernetKey: string): string {
   const secret = new fernet.Secret(fernetKey);
   const token = new fernet.Token({ secret, token: encryptedToken, ttl: 0 });
   return token.decode();
+}
+
+/**
+ * Encrypt token data using Fernet (matches gmail-mcp)
+ */
+function encryptToken(tokenJson: string, fernetKey: string): string {
+  const secret = new fernet.Secret(fernetKey);
+  const token = new fernet.Token({ secret });
+  return token.encode(tokenJson);
+}
+
+/**
+ * Save tokens to encrypted storage
+ * Uses read-merge-write to preserve fields we don't have (token_uri, client_id, etc.)
+ */
+function saveTokens(newCredentials: Credentials): void {
+  const tokenPath = getTokenPath();
+  const saltPath = getSaltPath();
+
+  const encryptionKey = process.env.TOKEN_ENCRYPTION_KEY;
+  if (!encryptionKey) {
+    console.error('Cannot save tokens: TOKEN_ENCRYPTION_KEY not set');
+    return;
+  }
+
+  try {
+    // Read existing token data to preserve fields we don't have
+    const salt = readFileSync(saltPath);
+    const fernetKey = deriveKey(encryptionKey, salt);
+
+    let tokenData: Record<string, any> = {};
+
+    if (existsSync(tokenPath)) {
+      const encryptedToken = readFileSync(tokenPath, 'utf-8');
+      const decrypted = decryptToken(encryptedToken, fernetKey);
+      tokenData = JSON.parse(decrypted);
+    }
+
+    // Update only the token fields
+    if (newCredentials.access_token) {
+      tokenData.token = newCredentials.access_token;
+    }
+    if (newCredentials.refresh_token) {
+      tokenData.refresh_token = newCredentials.refresh_token;
+    }
+    if (newCredentials.expiry_date) {
+      tokenData.expiry = new Date(newCredentials.expiry_date).toISOString();
+    }
+
+    // Encrypt and write
+    const tokenJson = JSON.stringify(tokenData);
+    const encrypted = encryptToken(tokenJson, fernetKey);
+
+    writeFileSync(tokenPath, encrypted, { mode: 0o600 });
+
+    console.error('Tokens saved to encrypted storage');
+  } catch (err) {
+    console.error('Failed to save tokens:', err);
+  }
 }
 
 /**
@@ -158,11 +217,13 @@ export async function getAuthenticatedClient(): Promise<OAuth2Client> {
 
     // Set up token refresh handler
     oauth2Client.on('tokens', (newTokens) => {
-      // Update expiry when tokens refresh
+      // Update cached expiry
       if (newTokens.expiry_date) {
         cachedTokenExpiry = newTokens.expiry_date;
       }
-      console.error('Tokens refreshed - will be persisted by gmail-mcp on next use');
+
+      // Persist to encrypted storage
+      saveTokens(newTokens);
     });
 
     cachedClient = oauth2Client;

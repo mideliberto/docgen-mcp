@@ -2,6 +2,9 @@
 
 MCP server for generating professional documents—Word (.docx) and Google Docs—with structured formatting.
 
+| [SETUP.md](SETUP.md) | [CHANGELOG.md](CHANGELOG.md) | [BACKLOG.md](BACKLOG.md) |
+|---------------------|------------------------------|--------------------------|
+
 ## Features
 
 - **Word document generation** from templates (brief, memo, proposal, etc.)
@@ -129,7 +132,8 @@ Returns: Path to generated .docx file
 - **No page numbers in Google Docs**: REST API doesn't support AutoText
 - **No bookmarks**: REST API lacks `createBookmark`
 - **Local images**: Uploaded to Drive automatically, requires public sharing
-- **Token refresh**: Read-only from gmail-mcp
+
+See [docs/api-quirks.md](docs/api-quirks.md) for Google Docs API limitations.
 
 ## Development
 
