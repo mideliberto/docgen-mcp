@@ -4,33 +4,25 @@
 > **Language:** TypeScript
 > **Purpose:** Document generation → DOCX or Google Docs
 
----
-
-## Development Logging
-
-Every completed task MUST end with an append to DEVLOG.md:
-
-```markdown
-### [Task Title]
-**Origin:** [Issue #X | Chat decision | Bug report]
-**Task:** [One-line description]
-**Changes:**
-- [What was done]
-**Commits:** [hash]
-**Status:** Complete | Partial | Blocked
-**Notes:** [Optional - gotchas, follow-up needed]
-```
-
-If DEVLOG.md doesn't exist, create it first using the template in the repo.
-
-Commit changes to DEVLOG.md as part of the task commit, or immediately after if the main commit is already pushed.
+**Read first:** `~/dev/CLAUDE.md` for universal standards (DEVLOG, error handling, workflow).
 
 ---
 
-## Project-Specific Notes
+## Project-Specific
 
+### Key Paths
+- Entry point: `src/index.ts`
+- Google Docs builder: `src/utils/gdocs-builder.ts`
+- Section types: `src/types/sections.ts`
+- Auth: `src/auth/google-auth.ts` (needs work to share gmail-mcp tokens)
+
+### Testing
+- Type check: `npx tsc --noEmit`
 - Build: `npm run build`
-- Types: `src/types/sections.ts` (do not modify without explicit instruction)
-- Validation: `src/schemas/sections.ts` + `src/utils/validate-input.ts`
+
+### Known Issues
+- Auth doesn't yet share encrypted tokens with gmail-mcp (see Issue backlog)
 
 ---
+
+*See ~/dev/CLAUDE.md for error handling, DEVLOG requirements, and workflow rules.*
